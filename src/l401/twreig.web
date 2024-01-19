@@ -1,0 +1,52 @@
+@* twreig.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[INPUT:] AA                                                        
+\item[OUTPUT:] B                                                         
+\item[INPUT:] NB                                                        
+\item[INPUT:] INC                                                       
+\item[PASSED:] IOEIG                                                     
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Uses]   NOTHING                                           
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       TREAD   TWRITE                                         
+\item[Called by]   CMPDEN  DENSTY                                         
+                                                                    
+\end{description}
+@a
+      subroutine twreig(AA,B,NB,INC,IOEIG)
+C ----------------------------------------------------------------------
+      implicit none
+      double precision AA , B
+      integer i , INC , IOEIG , NB
+      dimension B(NB) , AA(NB)
+C          a routine to write out the eigenvalues.  this is confused
+C     by the fact that both alpha and beta eigenvalues are stored on
+C     the same rw file.  arguments:
+C          aa .... the eigenvalues.
+C          b ..... some scratch space, at least 2*nb for uhf.
+C          nb .... number of basis functions.
+C          inc ... indicates whether these are alpha or beta.
+C                  0 ... alpha.
+C                  2 ... beta.
+C --------------------------------------------------------------------
+C
+      if ( INC.ne.2 ) then
+         call twrite(IOEIG,AA,NB,1,NB,1,0)
+         return
+      endif
+C
+      call tread(IOEIG,B,NB,1,NB,1,0)
+      do 100 i = 1 , NB
+         B(NB-1+i) = AA(i)
+ 100  continue
+      call twrite(IOEIG,B,NB,1,NB,1,0)
+      return
+C
+      end
+@* INDEX.

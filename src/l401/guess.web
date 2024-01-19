@@ -1,0 +1,348 @@
+@* guess.
+
+\begin{verbatim}
+
+program guess
+link 401
+
+this is a program which produces an initial guess to the
+solution of the scf equations.  this guess is in the form of
+molecular orbital coefficients and/or density matrices which are
+stored on the appropriate read-write files.  the steepest
+descents procedure (link 503) requires mo coefficients as an
+initial guess, while the classical scf procedures (links 501 and
+502) require density matrices.  since a density matrix can be
+produced from the mo coefficients, but not vice versa, the former
+is a more constraining requirement.
+
+there are several ways in which this guess may be produced.
+one easy way is to diagonalize the core hamiltonian.  in general,
+this is not a very good guess, but it is applicable to any basis
+set, and is available as an option.
+
+another type of guess is called the huckel guess, which is
+modeled after extended huckel mo theory.  essentially, the
+initial guess is formed from internally stored constants (for
+more details see subroutine huckel).  these constants were
+determined from studies on internal minimal and split valence
+basis sets (sto-3g, 4-31g, 6-31g), so the use of this type of
+guess with bases other than these is not recommended.
+
+this huckel guess can be applied to other bases in the
+following way:  the guess mo coefficients are formed from
+internal data as if there were an sto-3g basis set on the
+molecule.  the guess mo vectors in the desired basis are then
+formed by choosing the vectors which give the best (least-squares)
+fit to those described in the sto-3g basis.  since this will
+usually produce fewer than nbasis vectors,the mo coefficient
+matrix must be completed with orthonormal vectors of the proper
+symmetry if the full matrix is required (link 503).  this
+procedure is called a projected huckel guess, and is applicable
+to any basis set.
+
+a still better type of guess, usually, is to read the
+coefficient or density matrix from cards.  if the matrix read in
+is for a basis other than the one used in the current run, the
+matrix can be projected (by a least-squares fit) into the desired
+basis.  since the projected mo vectors can be normalized and
+orthogonalized, and this is not possible for a projected density
+matrix, projection of mo coefficients usually produces a better
+guess than projection of the density matrix.
+
+the options which determine the initial guess procedure
+to be used are described below.
+
+iop(5)
+     iop(5) ... type of guess.
+     0 ... default.  this gives a huckel guess for minimal bases, or
+           a projected huckel guess otherwise.
+     1 ... read guess from cards.
+     2 ... guess from core hamiltonian.
+     3 ... blocked huckel guess.
+     4 ... projected huckel guess.
+     5 ... renormalize and orthogonalize the coefficients which are
+              currently on the read-write files.
+iop(6)
+
+     iop(6) ... forced projection when guess is read from cards.
+     0 ... do not force projection.
+     1 ... force projected guess, even when bases are identical.
+     2 ... suppress projection.
+iop(7)
+
+     iop(7) ... scf constraints.
+     0 ... use ilsw to determine.
+     1 ... real rhf.
+     2 ... real uhf.
+     3 ... complex rhf.
+     4 ... complex uhf.
+     5 ... complex, but use ilsw to decide whether rhf/uhf.
+iop(8)
+
+     iop(8) ... alteration of configuration.
+     0 ... do not alter configuration.
+     1 ... read in pairs of integers (2i3) indicating which pairs
+              of mo's are to be interchanged.  pairs are read until
+              a blank card is encountered.
+     note:
+          if the configuration is altered on an open shell
+          system, two sets of data as described above will be expected,
+          first for alpha, second for beta.
+iop(10)
+
+     iop(10) ... orbitals to mix with complex.
+     0 ... mix the homo with the lumo.
+     1 ... read from cards (2i3) pairs of integers indicating which
+              pairs of orbitals are to be mixed.  reading is
+              terminated by a blank card.
+     note:
+          the same considerations for open shell systems which
+     applied in iop(8) apply here, also.
+iop(12)
+
+     iop(12) ... off diagonal scale factor for huckel guess.
+     0 ... default.  (k/2=.875)
+     n ... (k/2=n*.4375)
+iop(16)
+
+     iop(16) ... completion of coefficient matrix after projection.
+     0 ... complete the coefficient matrix after projection.
+     1 ... do not complete.
+iop(22)
+
+     iop(22) ... type of basis set.
+     0 ... use ilsw to determine.
+     1 ... minimal basis.
+     2 ... extended basis.
+     7 ... general basis.
+iop(23)
+
+     iop(23) ... five/six d, seven/ten f.
+     0 ... use ilsw to determine.
+     1 ... five d, seven f.
+     2 ... six d, seven f.
+     3 ... five d, ten f.
+     4 ... six d, ten f.
+iop(24)
+
+     iop(24) ... polarization functions on hydrogen.
+     0 ... use ilsw to determine.
+     1 ... no polarization functions on hydrogen.
+     2 ... a set of p functions on each hydrogen.
+iop(25)
+
+     iop(25) ... polarization functions on first row atoms.
+     0 ... use ilsw to determine.
+     1 ... no polarization functions.
+     2 ... a set of d functions on each first row atom.
+iop(26)
+
+     iop(26) ... polarization functions on second row atoms.
+     0 ... use ilsw to determine.
+     1 ... no polarization functions.
+     2 ... a set of d functions on second row atoms.
+
+
+     note that whenever ilsw is over-ridden, it is also over-written.
+iop(33)
+
+     iop(33) ... printing of guess.
+     0 ... no printing.
+     1 ... print the mo coefficients.
+     2 ... print everything.
+iop(34)
+
+     iop(34) ... dump option.
+     0 ... no dump.
+     1 ... turn on all possible printing.
+\end{verbatim}
+
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[OUTPUT:] JUMP                                                      
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]    IGUESS                                                 
+\item[Transmits as argument]  C       CORE    I56D    IAN     IBASIS  IDON1   IDON2  
+             IOCORE  IOSMAT  IOSVEC  IOVMAT  IPOLH   IPRINT  LABEL  
+             NAE     NATOMS  NBASIS  NBE                            
+\item[Uses]  C       CORE    I56D    IAN     IBASIS  ICMPLT  IDON1  
+             IDON2   IDUMP   IGUESS  IOCORE  IOSMAT  IOSVEC  IOUT   
+             IOVMAT  IPOLH   IPRINT  LABEL   NAE     NATOMS  NBASIS 
+             NBE                                                    
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       CHKRD   CORGES  DENSTY  GCFACT  GESOPT  GESPRT  GESRWF 
+             HUKGES  IND401  PRJHUK  RDGES   ROOTMT  SYMASG  TREAD  
+             TWRITE                                                 
+\item[Called by]   L401                                                   
+                                                                    
+\end{description}
+@a
+      subroutine guess(JUMP)
+      implicit none
+      double precision Atmchg , C , Core , Phycon
+      integer i , I56d , ia , Ialt , Ian , Ibasis , Iblock , Icharg , 
+     &        Icmp , Icmplt , Idgn , Idon1 , Idon2 , Idump , ifcp , 
+     &        Iguess , Imix , In , indaa , indb
+      integer indbb , indscr , indtab , Info , Iobas , Iocmat , Iocore , 
+     &        Iodmat , Iodtot , Iodum , Ioeig , Iogues , Iominc , 
+     &        Iomins , Iominv , Iop , Ioproj , Iorthg , Ioscr1 , Iosmat
+      integer Iosvec , Iosym , Ioteig , Iout , Iovmat , Ipolh , Iprint , 
+     &        Iproj , Ipunch , Irtcrd , irwlbl , Iscale , Ismear , 
+     &        Ititle , Itst , Iuhf , Iunit , jprj , JUMP , Label
+      integer lrwlbl , maxhan , mb , md , Multip , Nae , Natoms , nb , 
+     &        Nbasis , Nbe , Ne , nsq , ntt
+      integer stomin(54) , totbas
+      common /label / Label(1000) , Ititle(100) , Irtcrd(100)
+      common /iop   / Iop(50)
+      common /mol   / Natoms , Icharg , Multip , Nae , Nbe , Ne , 
+     &                Nbasis , Ian(101) , Atmchg(100) , C(300)
+      common /munit / Iunit(20)
+      common /phycon/ Phycon(30)
+      common /info  / Info(10)
+      common /rwf401/ Iosmat , Iodmat , Iocmat , Iovmat , Iocore , 
+     &                Iobas , Iodum , Iominc , Iomins , Iominv , 
+     &                Iodtot , Ioeig , Iogues , Iosym , Ioproj , 
+     &                Iosvec , Ioscr1 , Iorthg , Ioteig
+      common /ops401/ Iguess , Iproj , Iuhf , Icmp , Ialt , Imix , 
+     &                Idgn , Iscale , Ismear , Iblock , Icmplt , Itst , 
+     &                Ibasis , Ipolh , Idon1 , Idon2 , Iprint , Idump , 
+     &                I56d
+      common /io    / In , Iout , Ipunch
+      common /memry / Core(50000)
+      data irwlbl/502/ , lrwlbl/600/
+C    maxhan is the maximum atomic number for which the huckel
+C           parameters are available for a huckel or projected huckel
+C           guess
+      data maxhan/54/
+C    stomin(i) has the size of the minimal basis for atomic number i
+      data stomin/2*2 , 8*5 , 8*9 , 2*13 , 16*18 , 2*22 , 16*27/
+C
+C     data maxdim/127/
+C
+99001 format ('   INITIAL GUESS WAVE FUNCTION.')
+C
+C restore the labels; just in case this is a restart job
+      call tread(irwlbl,Label,lrwlbl,1,lrwlbl,1,0)
+C      write(6,9070) label
+C 9070 format (' dump /label/'/20 (5x,25a4/))
+C
+C                initialize /cfact/.  this common block is used by the
+C                overlap routine to transform from 6- to 5-d, and from
+C                10- to 7-f.
+      call gcfact
+C
+C                fill /ops401/.  this routine reads iop(), deals with
+C                defaults, and fills the common block.
+      call gesopt
+C
+C                this next routine contains the data statements for
+C                /rwf401/.  it initializes all of the permanent rwf's,
+C                and marks the first volatile file.
+      call gesrwf(Core(1),Nbasis)
+C
+C                compute and initialize some other random stuff.
+      nb = Nbasis
+      mb = nb
+      nsq = nb*nb
+      ntt = nb*(nb+1)/2
+      md = Nbasis
+      if ( Iprint.ne.0 ) write (Iout,99001)
+C
+C                compute indices which allocate space in "core".
+      call ind401(nb,indb,indaa,indbb,indscr,indtab)
+C
+C                now, we've gotten down to the real calculation.
+C
+C                form the transformation matrix.
+      call tread(Iosmat,Core(1),nb,nb,nb,nb,1)
+      call rootmt(Core(1),Core(indb),Core(indaa),Core(indbb),nb,nb,1)
+      call twrite(Iovmat,Core(1),nsq,1,nsq,1,0)
+      if ( Idump.ne.0 ) call gesprt(1,Core(1),0,nb,nb,nb)
+C
+C                save the eigenvectors of "s" if necessary to complete
+C                projected mo coefficients.
+      if ( Icmplt.ne.0 ) call twrite(Iosvec,Core(indb),nsq,1,nsq,1,0)
+C
+C
+C                now, branch to the appropriate routine, depending upon
+C                what kind of guess is requested.
+C
+      if ( Iguess.eq.4 ) then
+C
+C
+C                      this section deals with read-in guesses.  first,
+C                scan the input guess, and determine what kind of
+C                guess is provided, and what the "mbasis" for the input
+C                guess is.
+         call chkrd(Core(1),nb,mb,ifcp,jprj)
+         if ( mb.gt.nb ) call ind401(mb,indb,indaa,indbb,indscr,indtab)
+         md = max0(nb,mb)
+C
+C                "rdges" does everything else for read-in guesses.
+         call rdges(Core(1),Core(indb),Core(indaa),Core(indbb),
+     &              Core(indscr),md,nb,mb,ifcp,jprj,Natoms,Ian,C,Nae,
+     &              Nbe)
+      else
+C
+C  impose a sensible guess if this has not been given
+         totbas = 0
+C        force core guess if no huckel paramaters are available:
+         do 50 i = 1 , Natoms
+            ia = Ian(i)
+            totbas = totbas + stomin(ia)
+            if ( ia.gt.maxhan ) then
+               Iguess = 3
+               write (Iout,99002) ia
+99002          format (' No Huckel Parameters for Atomic Number ',i4,/,
+     &                 ' GUESS=CORE imposed')
+            endif
+ 50      continue
+C  force projected huckel guess if basis is not minimal
+         if ( Nbasis.gt.totbas .and. Iguess.eq.2 ) then
+            Iguess = 1
+            write (Iout,99003)
+99003       format (
+     &           ' Basis is not Minimal, PROJECTED Huckel GUESS imposed'
+     &           )
+         endif
+C  end of imposition of guess
+C
+C                projected huckel guess.
+         if ( Iguess.eq.1 ) call prjhuk(Core(1),Core(indb),Core(indaa),
+     &                                  Core(indbb),Core(indscr),
+     &                                  Core(indtab),nb,Ian,Natoms,C,
+     &                                  Iprint,mb)
+C
+C                huckel guess.
+         if ( Iguess.eq.2 ) call hukges(Core(1),Core(indb),Core(indaa),
+     &                                  Core(indbb),Core(indscr),md,nb,
+     &                                  Iovmat,Iosmat,Ian,Natoms,Ibasis,
+     &                                  Ipolh,Idon1,Idon2,I56d)
+C
+C                core guess.
+         if ( Iguess.eq.3 ) call corges(Core(1),Core(indb),Core(indaa),
+     &                                  Core(indbb),nb,Iocore,Iovmat)
+C
+C                      in the case that the guess is not being read,
+C                one of the above three routines has formed some mo
+C                coefficients and returned them in "a" (the beginning
+C                of "core").  the next routine, "densty" deals with
+C                everything else (altering, complex, output, etc.).
+         call densty(Core(1),Core(indb),Core(indaa),Core(indbb),md,Nae,
+     &               Nbe,mb)
+      endif
+C
+C                make orbital symmetry assignments.
+      call symasg(Core(1),Core(indb),Core(indaa),Core(indbb),
+     &            Core(indtab),nb,mb,Nae,Nbe,Natoms,1)
+C
+C=    call chainx(0)
+      JUMP = 0
+      return
+C
+      end
+@* INDEX.

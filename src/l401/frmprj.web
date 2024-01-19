@@ -1,0 +1,67 @@
+@* frmprj.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[PASSED:] A                                                         
+\item[PASSED:] B                                                         
+\item[PASSED:] AA                                                        
+\item[PASSED:] MDIM                                                      
+\item[PASSED:] NBASIS                                                    
+\item[PASSED:] MBASIS                                                    
+\item[INPUT:] IPRINT                                                    
+\item[UNUSED:] IFCP                                                      
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Transmits as argument]  IOPROJ  IOVMAT                                         
+\item[Uses]  IOPROJ  IOVMAT                                         
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       GESPRT  MATREC  OVLP    TREAD   TWRITE                 
+\item[Called by]   PRJHUK  RDGES                                          
+                                                                    
+\end{description}
+@a
+      subroutine frmprj(A,B,AA,MDIM,NBASIS,MBASIS,IPRINT,IFCP)
+      implicit none
+      double precision A , AA , B
+      integer IFCP , Iobas , Iocmat , Iocore , Iodmat , Iodtot , Iodum , 
+     &        Ioeig , Iogues , Iominc , Iomins , Iominv , Ioproj , 
+     &        Iorthg , Ioscr1 , Iosmat , Iosvec , Iosym , Ioteig , 
+     &        Iovmat
+      integer IPRINT , MBASIS , MDIM , NBASIS
+C ----------------------------------------------------------------------
+      dimension A(*) , B(*) , AA(*)
+      common /rwf401/ Iosmat , Iodmat , Iocmat , Iovmat , Iocore , 
+     &                Iobas , Iodum , Iominc , Iomins , Iominv , 
+     &                Iodtot , Ioeig , Iogues , Iosym , Ioproj , 
+     &                Iosvec , Ioscr1 , Iorthg , Ioteig
+C          this routine forms and writes out the projection matrix.
+C     "a" and "b" are scratch arrays of size "mdim x mdim".  "aa" is
+C     a scratch vector of length "mdim".  "nbasis" is the number
+C     of basis functions in the desired (new) basis set, and "mbasis"
+C     is the number in the old basis.  "iprint" greater than 1
+C     causes the overlap between the bases and the projection matrix
+C     to be printed.  "ifcp" indicates whether mo coefs or a density
+C     matrix is to be projected: 1/2 -- mo/density.  implicit inputs
+C     to this routine are the contents of the common blocks /b/
+C     and /b2/.  /b/ must contain the basis information for the
+C     new basis, and /b2/ must contain the description for the
+C     old.
+C ----------------------------------------------------------------------
+C
+C     ovlp forms the overlap matrix between the two basis sets in b.
+      call ovlp(B,NBASIS,MBASIS,MDIM,IPRINT)
+      if ( IPRINT.gt.1 ) call gesprt(14,B,0,MDIM,NBASIS,MBASIS)
+C
+C     multiply this overlap by the transformation matrix.
+      call tread(Iovmat,A,MDIM,MDIM,NBASIS,NBASIS,0)
+      call matrec(A,B,AA,MDIM,NBASIS,NBASIS,MBASIS,1)
+      call twrite(Ioproj,A,MDIM,MDIM,NBASIS,MBASIS,0)
+      if ( IPRINT.ge.2 ) call gesprt(4,A,0,MDIM,NBASIS,MBASIS)
+C
+      return
+C
+      end
+@* INDEX.

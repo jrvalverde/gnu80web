@@ -1,0 +1,48 @@
+@* corges.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[PASSED:] A                                                         
+\item[PASSED:] B                                                         
+\item[PASSED:] AA                                                        
+\item[PASSED:] BB                                                        
+\item[PASSED:] NB                                                        
+\item[PASSED:] IOCORE                                                    
+\item[PASSED:] IOV                                                       
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Uses]   NOTHING                                           
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       GETMO   TREAD                                          
+\item[Called by]   GUESS                                                  
+                                                                    
+\end{description}
+@a
+      subroutine corges(A,B,AA,BB,NB,IOCORE,IOV)
+C ----------------------------------------------------------------------
+      implicit none
+      double precision A , AA , B , BB
+      integer IOCORE , IOV , NB
+      dimension A(*) , B(*) , AA(*) , BB(*)
+C            this routine performs an initial guess using the core
+C      hamiltonial.  the mo coefs are returned in "a".  the arguments
+C      are:
+C
+C      a, b ... two arrays of at least size (nb,nb).  the mo coefs are
+C            returned in "a".
+C      aa, bb ... two vectors of at least size "nb".  the eigenvalues
+C            are returned in "aa".
+C      nb ... the number of basis functions.
+C     iocore ... rwf number of core hamiltonian.
+C     iov ... rwf number of transformation matrix.
+C ----------------------------------------------------------------------
+C
+      call tread(IOCORE,A,NB,NB,NB,NB,1)
+      call getmo(A,B,AA,BB,NB,NB,IOV)
+      return
+C
+      end
+@* INDEX.

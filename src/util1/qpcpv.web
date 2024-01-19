@@ -1,0 +1,33 @@
+@* qpcpv.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[PASSED:] DUMMY                                                     
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Uses]   NOTHING                                           
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       NCHRPW                                                 
+\item[Called by]   QPAMBI  QPDEST  QPERRO  QPSCHR  QPSKEY  QPUTIT  QPWORD 
+                                                                    
+\end{description}
+@a
+      integer function qpcpv(DUMMY)
+      implicit none
+      real DUMMY
+      integer nchrpw
+C ----------------------------------------------------------------------
+C          this routine returns the nummber of characters which
+C     can be stored in a word.  it isn't used consistently throughout
+C     the character routines, but someday it will be (sorry, i thought
+C     of it too late).
+C     r. a. whiteside - january 1980.
+C ----------------------------------------------------------------------
+      qpcpv = nchrpw(DUMMY)
+      return
+C
+      end
+@* INDEX.

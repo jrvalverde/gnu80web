@@ -1,0 +1,52 @@
+@* nwait.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[UNUSED:] STAT                                                      
+\item[UNUSED:] IUNIT                                                     
+\item[UNUSED:] UNIT                                                      
+\item[OUTPUT:] IERR                                                      
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Uses]   NOTHING                                           
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]        NOTHING                                           
+\item[Called by]   NTRAN                                                  
+                                                                    
+\end{description}
+@a
+      subroutine nwait(STAT,IUNIT,UNIT,IERR)
+C  this routine is a ghost from asynchronous i/o in fortran 66
+      implicit none
+      integer IERR , IUNIT , STAT , UNIT
+C  it is retained to illustrate how to use this facility
+C  if it should ever become available in fortran 77
+C     dimension stat(2,4)
+C     real swait,start,cputim,tcpu,twait
+C     logical print
+C     common /ntr/swait(3,4),io(3,4),units(4),nunits,maxpos(4),print(4)
+C     common /io/in,iout,ipunch
+C     dimension str(10)
+C2nwait
+      IERR = 0
+C     if (stat(1,iunit).le.0) return
+C     start=cputim(iq)
+C calculate total cputime since io operation:
+C     tcpu=start-swait(3,iunit)
+C     swait(2,iunit)=swait(2,iunit)+tcpu
+C     wait(unit,id=stat(1,iunit),cond=ierr)
+C calculate total wait time
+C     twait=cputim(iq)-start
+C     swait(1,iunit)=swait(1,iunit)+twait
+C     if (.not.print(iunit)) go to 50
+C     write(iout,500) tcpu,twait
+C50    stat(1,iunit)=0
+C     ierr=-ierr
+C     if (ierr.eq.-1) ierr=stat(2,iunit)
+      return
+C500   format(20x,'=========> cpu= ',f8.3,'wait= ',f8.3)
+      end
+@* INDEX.

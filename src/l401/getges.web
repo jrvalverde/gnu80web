@@ -1,0 +1,94 @@
+@* getges.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[PASSED:] STR                                                       
+\item[PASSED:] A                                                         
+\item[PASSED:] B                                                         
+\item[PASSED:] AA                                                        
+\item[PASSED:] BB                                                        
+\item[PASSED:] CC                                                        
+\item[INPUT:] INC                                                       
+\item[INPUT:] IFCP                                                      
+\item[INPUT:] JPRJ                                                      
+\item[PASSED:] MD                                                        
+\item[PASSED:] NB                                                        
+\item[PASSED:] MB                                                        
+\item[PASSED:] NE                                                        
+\item[INPUT:] IUHF                                                      
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Transmits as argument]  IOUT                                                   
+\item[Uses]  IOCMAT  IODMAT  IOUT                                   
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       BINRD   DFORM   PROJEC  STROUT  TWRITE  UNPCCK         
+\item[Called by]   RDGES                                                  
+                                                                    
+\end{description}
+@a
+      subroutine getges(STR,A,B,AA,BB,CC,INC,IFCP,JPRJ,MD,NB,MB,NE,IUHF)
+C ----------------------------------------------------------------------
+C ----------------------------------------------------------------------
+      implicit none
+      double precision A , AA , B , BB , CC , one , two , x
+      integer IFCP , In , INC , Iobas , Iocmat , Iocore , Iodmat , 
+     &        Iodtot , Iodum , Ioeig , Iogues , Iominc , Iomins , 
+     &        Iominv , Ioproj , Iorthg , Ioscr1 , Iosmat , Iosvec , 
+     &        Iosym
+      integer Ioteig , Iout , Iovmat , Ipunch , ititle , IUHF , JPRJ , 
+     &        MB , mbas , MD , NB , NE , nwrd
+      dimension ititle(30)
+      dimension A(*) , B(*) , AA(*) , BB(*) , CC(*)
+      integer STR(*)
+      common /io    / In , Iout , Ipunch
+      common /rwf401/ Iosmat , Iodmat , Iocmat , Iovmat , Iocore , 
+     &                Iobas , Iodum , Iominc , Iomins , Iominv , 
+     &                Iodtot , Ioeig , Iogues , Iosym , Ioproj , 
+     &                Iosvec , Ioscr1 , Iorthg , Ioteig
+      data one/1.0D0/ , two/2.0D0/
+C          a routine to get an initial guess from input.  the
+C     string identifying the data to be gotten is in "str".  "a" and
+C     "b" are scratch arrays.  "aa", "bb", and "cc" are scratch
+C     vectors. the remaining arguments are:
+C          inc = 1 ... alpha, real.
+C                2 ... alpha, imag.
+C                3 ... beta, real.
+C                4 ... beta, imag.
+C          ifcp - whether mo's or density: 1/2 -- mo/density.
+C          jprj - type of projection:  0/1/2 -- none/minimal/ basis.
+C          md --- dimension of matrices and vectors.
+C          nb --- number of basis functions in current (output) problem.
+C          mb --- number of basis functions in input guess.
+C          ne --- number of electrons of appropriate spin.
+C ----------------------------------------------------------------------
+99001 format ('  DATA READ IN: ')
+C
+C                        read in the guess.
+      call binrd(A,ititle,STR,nwrd,mbas)
+      call strout(Iout,ititle,80,1)
+C
+C                        unpack the guess.
+      call unpcck(IFCP-1,IFCP-1,A,MD,MD,MB,MB)
+C
+C                        project the input guess if necessary.
+      if ( JPRJ.ne.0 ) call projec(A,B,AA,BB,CC,MD,NB,MB,IFCP)
+C
+C                        write out the mo's.
+      if ( IFCP.ne.2 ) then
+         call twrite(Iocmat-1+INC,A,MD,MD,NB,NB,0)
+C
+C                        form the density.
+         x = two
+         if ( IUHF.eq.1 ) x = one
+         call dform(A,B,MD,NB,NE,x)
+      endif
+C
+C                        write out the density.
+      call twrite(Iodmat-1+INC,B,MD,MD,NB,NB,1)
+      return
+C
+      end
+@* INDEX.

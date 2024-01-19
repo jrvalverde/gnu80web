@@ -1,0 +1,148 @@
+@* gesprt.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[INPUT:] IPRT                                                      
+\item[PASSED:] A                                                         
+\item[INPUT:] INC                                                       
+\item[PASSED:] MDIM                                                      
+\item[PASSED:] NBASIS                                                    
+\item[PASSED:] MBASIS                                                    
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Transmits as argument]  IOUT    LABEL                                          
+\item[Uses]  IGUESS  IOUT    LABEL                                  
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       MATPRT  PUTBC   STROUT  TREAD                          
+\item[Called by]   CMPDEN  DENSTY  FRMPRJ  GUESS   HUCKEL  PRJHUK  PROJEC 
+                                                                    
+\end{description}
+@a
+      subroutine gesprt(IPRT,A,INC,MDIM,NBASIS,MBASIS)
+      implicit none
+      double precision A
+      integer I56d , Ialt , Ibasis , Iblock , Icmp , Icmplt , Idgn , 
+     &        Idon1 , Idon2 , Idump , Iguess , Imix , In , INC , Iout , 
+     &        Ipolh , Iprint , Iproj , IPRT , Ipunch
+      integer Irtcrd , irwlbl , Iscale , Ismear , Ititle , Itst , Iuhf , 
+     &        Label , lc , line , lrwlbl , MBASIS , MDIM , NBASIS
+      dimension A(*)
+      dimension line(30)
+      common /io    / In , Iout , Ipunch
+      common /ops401/ Iguess , Iproj , Iuhf , Icmp , Ialt , Imix , 
+     &                Idgn , Iscale , Ismear , Iblock , Icmplt , Itst , 
+     &                Ibasis , Ipolh , Idon1 , Idon2 , Iprint , Idump , 
+     &                I56d
+      common /label / Label(1000) , Ititle(100) , Irtcrd(100)
+      data irwlbl/502/ , lrwlbl/600/
+C
+C    *******************************************************************
+C
+C     this subroutine handles most of the printing in the guess.
+C
+C    *******************************************************************
+C
+C
+C
+C     data ientry/0/
+C
+C    *******************************************************************
+C
+99001 format ('  TRANSFORMATION MATRIX.')
+99002 format ('  MINIMAL BASIS OVERLAP.')
+99003 format ('  MINIMAL BASIS TRANSFORMATION MATRIX.')
+99004 format ('  PROJECTION MATRIX.')
+99005 format ('  HUCKEL MATRIX  IOS =',i5)
+99006 format ('  CORE HAMILTONIAN.')
+99007 format ('  MO COEFFICIENTS BEFORE PROJECTION.')
+99008 format ('  OVERLAP BETWEEN THE BASIS SETS.')
+C
+C    *******************************************************************
+C
+      call tread(irwlbl,Label,lrwlbl,1,lrwlbl,1,0)
+C
+      lc = 0
+      if ( INC.eq.0 ) call putbc('REAL ALPHA ',11,line,lc)
+      if ( INC.eq.1 ) call putbc('IMAGINARY ALPHA ',16,line,lc)
+      if ( INC.eq.2 ) call putbc('REAL BETA ',10,line,lc)
+      if ( INC.eq.3 ) call putbc('IMAGINARY BETA ',15,line,lc)
+      if ( INC.eq.4 ) call putbc('INITIAL GUESS ',14,line,lc)
+C
+      if ( IPRT.eq.2 ) then
+C
+         write (Iout,99002)
+      elseif ( IPRT.eq.3 ) then
+C
+         write (Iout,99003)
+      elseif ( IPRT.eq.4 ) then
+C
+         write (Iout,99004)
+         call matprt(A,MDIM,MDIM,NBASIS,NBASIS,0,0,0,0,0,0.,0)
+         return
+      elseif ( IPRT.eq.5 ) then
+C
+         write (Iout,99005) INC
+         if ( Iguess.ne.1 ) goto 100
+      elseif ( IPRT.eq.6 ) then
+C
+         write (Iout,99006)
+         goto 100
+      elseif ( IPRT.eq.7 ) then
+C
+         write (Iout,99007)
+      elseif ( IPRT.eq.8 ) then
+C
+         call putbc('DENSITY MATRIX.',15,line,lc)
+         call strout(Iout,line,lc,1)
+         goto 100
+      elseif ( IPRT.eq.9 ) then
+C
+         call putbc('MO COEFFICIENTS.',16,line,lc)
+         call strout(Iout,line,lc,1)
+         goto 100
+      elseif ( IPRT.eq.10 ) then
+C
+         call putbc('MO COEFFICIENTS.',16,line,lc)
+         call strout(Iout,line,lc,1)
+         call matprt(A,MDIM,MDIM,NBASIS,NBASIS,2,0,Label,0,0,0.,0)
+         return
+      elseif ( IPRT.eq.11 ) then
+C
+         call putbc('MO COEFFICIENTS READ IN.',24,line,lc)
+         call strout(Iout,line,lc,1)
+      elseif ( IPRT.eq.12 ) then
+C
+         call putbc('DENSITY MATRIX READ IN.',23,line,lc)
+         call strout(Iout,line,lc,1)
+      elseif ( IPRT.eq.13 ) then
+C
+         write (Iout,99008)
+      elseif ( IPRT.eq.14 ) then
+C
+         write (Iout,99008)
+         goto 200
+      else
+C
+         write (Iout,99001)
+C
+C1020 call matprt(a,mdim,mdim,nbasis,nbasis,2,0,label,0,1,0.,0)
+C     return
+C
+         call matprt(A,MDIM,MDIM,NBASIS,NBASIS,0,0,0,0,0,0.,0)
+         return
+      endif
+C
+      call matprt(A,MDIM,MDIM,MBASIS,MBASIS,0,0,0,0,0,0.,0)
+      return
+C
+ 100  call matprt(A,MDIM,MDIM,NBASIS,MBASIS,2,0,Label,0,0,0.,0)
+      return
+C
+ 200  call matprt(A,MDIM,MDIM,NBASIS,MBASIS,2,0,Label,0,0,0.,0)
+      return
+C
+      end
+@* INDEX.

@@ -1,0 +1,493 @@
+@* out2e.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[INPUT:] NSET                                                      
+\item[INPUT:] MU                                                        
+\item[INPUT:] NU                                                        
+\item[INPUT:] LAMBDA                                                    
+\item[INPUT:] SIGMA                                                     
+\item[OUTPUT:] GINT                                                      
+\item[INPUT:] DBUF                                                      
+\item[OUTPUT:] IBUF2E                                                    
+\item[OUTPUT:] DBUF2E                                                    
+\item[OUTPUT:] IRET                                                      
+\item[INPUT:] IDCOUT                                                    
+\item[INPUT:] IOP                                                       
+\item[PASSED:] D                                                         
+\item[PASSED:] F                                                         
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]    DBASE   DCOUNT  I       IBASE   ICOUNT  ICUT    IDUMP  
+             IFIL    INTCNT  IPRINT  IQ      ISTAT   ITOTAL  J      
+             K       KNTT1   KNTT2   L       MINDX   NTX     Q      
+             R       SINDX                                          
+\item[Transmits as argument]  IBF     IRWIBF  IRWICB  LENIBF                         
+\item[Uses]  DBASD   DBASE   DCOUNT  I       IBASD   IBASE   IBF    
+             ICON    ICOUNT  ICUT    IDUMP   IFIL    INTCNT  IOUT   
+             IPRINT  IQ      IRESET  IRWIBF  IRWICB  ISMODE  ISTAT  
+             ITOTAL  IUX     J       JA      K       KNTT1   KNTT2  
+             L       LAST    LENIBF  LIMINT  MODE    NBASIS  NTX    
+             NWIIB                                                  
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       DIR2E   DIRTRN  DMPINT  GABS    IDEF    IFILE   IPOS   
+             IWAIT   IWIND   IWRITE  LABINT  PACK2   PACK4   TREAD  
+             TWRITE                                                 
+\item[Called by]   DFOUT1  DFOUT2  DFOUT3  DFOUT4  DFOUT6  DFOUT8  GENL2E 
+             PHOENI  SHELL                                          
+                                                                    
+\end{description}
+@a
+      subroutine out2e(NSET,MU,NU,LAMBDA,SIGMA,GINT,DBUF,IBUF2E,DBUF2E,
+     &                 IRET,IDCOUT,IOP,D,F)
+      implicit none
+      double precision aa , Atmchg , C , cutoff , DBUF2E , gabs , GINT , 
+     &                 pt5 , ten , tenm6 , Valint
+      integer I , ia , Ian , Ibasd , Ibase , Ibf , IBUF2E , Icharg , 
+     &        Icon , Icount , Icut , IDCOUT , Idump , Ifil , ifprnt , 
+     &        ij , In , intape , Intcnt , Iops2e
+      integer Iout , Iprint , Ipunch , Iq , Ireset , IRET , Irwibf , 
+     &        Irwicb , iset , Ismode , isss , Istat , iswich , Isym2e , 
+     &        itest , Itotal , Iux , J , Ja , jprint
+      integer jsss , K , Kntt1 , Kntt2 , L , LAMBDA , Last , Lenibf , 
+     &        Limint , Mindx , Mode , MU , Multip , n , Nae , Natoms , 
+     &        Nbasis , Nbe , Ne , next
+      integer nfile , Nrpext , NSET , Ntx , NU , Nwiib , nwiib2 , Nwpi
+      save 
+      integer IOP(*)
+      double precision D(*) , F(*)
+      integer P , Q , R , Sindx
+      integer SIGMA
+      integer Dbase , Dcount , Dbasd
+      logical DBUF , ifirst
+      dimension Ibf(30)
+      dimension IBUF2E(*) , DBUF2E(*) , GINT(3,3) , ia(2) , ifprnt(7)
+      dimension ij(150)
+C      common /iop/iop(50)
+      common /mol   / Natoms , Icharg , Multip , Nae , Nbe , Ne , 
+     &                Nbasis , Ian(101) , Atmchg(100) , C(300)
+      common /io    / In , Iout , Ipunch
+      common /packed/ I , J , K , L , Valint , Ja
+      common /irwo2e/ Irwicb , Irwibf , Lenibf
+      common /ibf   / Ismode , Mode , Istat , Last , Ntx , Iux(5) , 
+     &                Icon , Nrpext , Kntt1 , Kntt2 , Ibase , Ibasd(2) , 
+     &                Dbase , Dbasd(2) , Ireset(2) , Iq , Ifil , 
+     &                Intcnt , Itotal , Limint , Nwpi , Nwiib , Isym2e
+      common /ops2e / Iops2e(20)
+      equivalence (Ismode,Ibf(1))
+      equivalence (Iprint,Iops2e(1))
+      equivalence (Idump,Iops2e(2))
+      equivalence (Icut,Iops2e(4))
+      equivalence (P,I) , (Q,J) , (R,Mindx,K) , (Sindx,L)
+      equivalence (ia(1),aa) , (Kntt1,Icount) , (Kntt2,Dcount)
+      data ifprnt/0 , 0 , 2 , 1 , 2 , 1 , 2/
+      data nfile/0/
+      data pt5/0.5D0/ , ten/10.0D0/
+      data tenm6/1.0D-6/
+C
+C
+99001 format (1x,i8,' INTEGRALS PRODUCED FOR A TOTAL OF ',i9)
+99002 format (15H AFTER BUFLAB' ,2I9,1x,i12)
+99003 format (15H SWAP BUFFERS' ,5I9)
+99004 format (27H INTEGRAL FILE'  SWAP FROM ,i2,4H TO ,i2,5H, AT ,i9,
+     &        16H TOTAL RECORDS. )
+99005 format (20H AT INITIALIZATION' /(1x,i6,2x,i9))
+99006 format (' CONTINUATION IN OUT2E:'/(1x,i6,2x,i9))
+C
+C  modifications for direct
+C   iop(45) non-zero is the condition for direct
+      if ( IOP(45).ne.0 ) then
+C  initialisation calls and file-closing calls irrelevant in direct
+C  make sure to fill up /ibf/ since isym2e is needed by direct
+         if ( NSET.lt.0 ) call tread(Irwibf,Ibf(1),Lenibf,1,Lenibf,1,0)
+         if ( NSET.gt.0 ) then
+C note that these calls are from l501 and so iop is actually
+C    iop3 from rhfclo
+C     iop(45) = 1 means direct scf
+            if ( IOP(45).eq.1 ) call dir2e(NSET,MU,NU,LAMBDA,SIGMA,GINT,
+     &           IOP,D,F)
+C   iop(45) = 2 means direct 2e transformation (for mp2 etc)
+            if ( IOP(45).eq.2 ) call dirtrn
+            IRET = 0
+            return
+         else
+            IRET = 0
+            return
+         endif
+C  no direct - use normal procedures
+      elseif ( NSET.lt.0 ) then
+C***********************************************************************
+C     initialization entry.  determine cutoff and initialize some
+C     variables.
+C
+C     icount  points to the next location in the integral output
+C             that is to be filled.
+C
+C     intcnt  integral counter.
+C
+C     iq      points to the buffer being filled.
+C
+C     ifirst  used in determining the i/o activity of the 2-e integral
+C             output unit.
+C
+C     ifil    counter for the number of complete integral blocks
+C             written out.
+C
+C     intape  the current output unit (see lnk1 for details concerning
+C             iunit(11) and iunit(12)).
+C
+C     jprint  a print variable determined from iop(13) and ifprnt.
+C
+C***********************************************************************
+         call tread(Irwibf,Ibf(1),Lenibf,1,Lenibf,1,0)
+         Intcnt = 0
+         IRET = 0
+         ifirst = .true.
+C     intape=iux(1)
+C     if(nfile.ne.0)go to 5
+C     disc oriented systems, put all integrals on iux(2).
+         intape = Iux(2)
+         Ntx = 1
+C   5 continue
+C     prepare linear indexing array.
+         do 50 I = 1 , Nbasis
+            ij(I) = (I*(I-1))/2
+ 50      continue
+         Icut = IOP(27)
+         Iprint = IOP(33)
+         Idump = IOP(34)
+         if ( Idump.ge.3 ) Iprint = 2
+C     determine cutoff.
+         cutoff = tenm6
+         if ( Icut.ne.0 ) cutoff = ten**(-Icut)
+C     set up print option.
+         jprint = ifprnt(Iprint+1)
+C
+C     determine entry mode from istat.
+         if ( Istat.eq.1 ) then
+C
+C     open 2-e integral file here.
+            Iq = 1
+            if ( Idump.ne.0 ) write (Iout,99005) (I,Ibf(I),I=1,30)
+C     set print option for this unit
+C     define unit
+            call idef(intape,IOP(36))
+         elseif ( Istat.eq.2 ) then
+C
+C     continuation mode.
+            Iq = 1
+            Ibase = Ibasd(1)
+            Dbase = Dbasd(1)
+C     compute the necessary length from /ibf/.
+            nwiib2 = Nwiib/2
+            call tread(Irwicb,IBUF2E(Ibase),nwiib2,1,nwiib2,1,0)
+            if ( Idump.ne.0 ) write (Iout,99006) (I,Ibf(I),I=1,30)
+            intape = Iux(Ntx+1)
+            if ( Ifil.gt.0 ) call ipos(intape,Ifil+1)
+         else
+C
+C     bypass mode.
+            IRET = 1
+            return
+         endif
+         return
+      elseif ( NSET.eq.0 ) then
+C
+C
+C***********************************************************************
+C     final entry.
+C     if required, close off the integral file.  otherwise, leave
+C     it in a state that other 2-e integral programs can access.
+C     if this is the end of the interal evaluation, test for
+C     printing the integrals.
+C***********************************************************************
+         if ( DBUF .and. (.not.ifirst) ) call iwait(intape)
+         if ( Last.ne.IDCOUT ) then
+C
+C     do not close 2-e file here.
+            Istat = 2
+            nwiib2 = Nwiib/2
+            call twrite(Irwicb,IBUF2E(Ibase),nwiib2,1,nwiib2,1,0)
+         else
+C
+C     close 2-e file here.
+            Istat = 3
+            call labint(IBUF2E(Ibase),1)
+            call iwrite(intape,Iq,IBUF2E)
+            Ifil = Ifil + 1
+            call iwait(intape)
+            call iwind(intape)
+         endif
+      else
+C
+C
+C***********************************************************************
+C     normal entry ... here, the integrals are processed.
+C
+C***********************************************************************
+C
+C     loop over possible 3 sets of integrals.
+         do 150 iset = 1 , NSET
+C     select proper cutoff test.
+            if ( Mode.eq.1 ) then
+            elseif ( Mode.eq.3 .or. Mode.eq.5 .or. Mode.eq.6 ) then
+C     test 2 integrals.
+               if ( (gabs(GINT(1,iset))+gabs(GINT(2,iset))).gt.cutoff )
+     &              goto 60
+               goto 150
+            elseif ( Mode.eq.4 ) then
+C     test 3 integrals.
+               if ( (gabs(GINT(1,iset))+gabs(GINT(2,iset))+gabs(GINT(3,
+     &              iset))).gt.cutoff ) goto 60
+               goto 150
+            endif
+C     test 1 integral.
+            if ( gabs(GINT(1,iset)).le.cutoff ) goto 150
+C
+C     enter here to retain integral(s).
+C     note that intcnt actually counts distinct labels.
+ 60         Intcnt = Intcnt + 1
+C
+C     set up correlation between mu, nu, lambda, sigma and
+C     i, j, k, l.
+            I = MU
+            if ( iset.eq.2 ) then
+C
+               J = SIGMA
+               K = NU
+               L = LAMBDA
+            elseif ( iset.eq.3 ) then
+C
+               J = LAMBDA
+               K = NU
+               L = SIGMA
+            else
+C
+               J = NU
+               K = LAMBDA
+               L = SIGMA
+            endif
+C
+C     the following algorithm (through st \# 140) orders the indices
+C     i, j, k, l such that
+C       i >or= j, i >or= k, k >or= l,
+C       and if i=k, j >or= l.
+C
+            iswich = 0
+            if ( I.lt.J ) then
+               n = I
+               I = J
+               J = n
+               iswich = iswich + 1
+            endif
+            if ( K.lt.L ) then
+               n = K
+               K = L
+               L = n
+               iswich = iswich + 1
+            endif
+            if ( I.lt.K ) then
+            elseif ( I.eq.K ) then
+C
+               if ( J.ge.L ) goto 80
+            else
+               goto 80
+            endif
+            n = I
+            I = K
+            K = n
+            n = J
+            J = L
+            L = n
+C
+C     select type of processing based on ismode.
+ 80         if ( Ismode.le.0 ) then
+C
+C     regular integral classification scheme:
+C     detect shell coincidences (if any), and if necessary
+C     switch from i, j, k, l, to new suffix set p, q, r, mindx, sindx.
+C     the following code is optimized for the general integral.
+               if ( I.ne.J ) then
+C
+                  if ( I.ne.K ) then
+C
+                     if ( J.ne.K ) then
+C
+                        if ( K.eq.L ) then
+                           Sindx = 5
+C
+                        elseif ( J.ne.L ) then
+C
+C     either pack4 (for type 1 integrals) or pack4 (for type 2 integrals
+C     is called to perform the packing operations.
+C
+C
+C
+C     place type 1 integral into buffer.
+                           call pack4
+                           aa = GINT(1,iset)
+                           IBUF2E(Kntt1+Ibase) = Ja
+                           IBUF2E(Kntt1+1+Ibase) = ia(1)
+                           IBUF2E(Kntt1+2+Ibase) = ia(2)
+                           Kntt1 = Kntt1 + 3
+                           goto 100
+                        else
+                           Sindx = 2
+                        endif
+                     elseif ( K.ne.L ) then
+C
+                        R = L
+                        Sindx = 1
+                     else
+                        Mindx = 1
+                        Sindx = 6
+                     endif
+                  elseif ( J.ne.L ) then
+C
+                     R = L
+                     Sindx = 0
+                  else
+                     Sindx = 3
+                  endif
+               elseif ( I.ne.K ) then
+C
+                  if ( K.ne.L ) then
+                     Q = K
+                     R = L
+                     Sindx = 4
+                  else
+C
+                     Q = K
+                     Mindx = 2
+                     Sindx = 6
+                  endif
+               elseif ( I.ne.L ) then
+C
+                  Q = L
+                  Mindx = 3
+                  Sindx = 6
+               else
+                  Sindx = 7
+               endif
+C
+C     place type 2 integral into buffer.
+               call pack4
+               aa = GINT(1,iset)
+               IBUF2E(Kntt2+Ibase) = Ja
+               IBUF2E(Kntt2+1+Ibase) = ia(1)
+               IBUF2E(Kntt2+2+Ibase) = ia(2)
+               Kntt2 = Kntt2 - 3
+            else
+C
+C     raffenetti type integral processing.
+C     get linearized suffixes and then select fill code based
+C     on the number of integrals to be stored.
+               isss = I
+               jsss = J
+C     if ismode=4 or 5, we must pack all four suffixes.
+               if ( Ismode.lt.4 ) then
+C
+                  I = ij(I) + J
+                  J = ij(K) + L
+                  call pack2
+               else
+                  call pack4
+                  I = ij(I) + J
+                  J = ij(K) + L
+               endif
+               if ( Ismode.eq.2 .or. Ismode.eq.4 ) then
+C
+C     raffenetti type 2.
+                  if ( I.eq.J ) then
+                     GINT(1,iset) = pt5*GINT(1,iset)
+                     GINT(2,iset) = pt5*GINT(2,iset)
+                  endif
+                  IBUF2E(Icount+Ibase) = Ja
+                  DBUF2E(Dcount+Dbase) = GINT(1,iset)
+                  DBUF2E(Dcount+1+Dbase) = GINT(2,iset)
+                  Dcount = Dcount + 2
+               elseif ( Ismode.eq.3 .or. Ismode.eq.5 ) then
+C
+C     raffenetti type 3.
+C     if necessary, modify the sign of gint(3,iset).
+                  if ( I.eq.J ) then
+                     GINT(1,iset) = pt5*GINT(1,iset)
+                     GINT(2,iset) = pt5*GINT(2,iset)
+                     GINT(3,iset) = pt5*GINT(3,iset)
+                  endif
+                  IBUF2E(Icount+Ibase) = Ja
+                  DBUF2E(Dcount+Dbase) = GINT(1,iset)
+                  DBUF2E(Dcount+1+Dbase) = GINT(2,iset)
+                  itest = mod(iswich,2)
+                  if ( itest.ne.0 ) GINT(3,iset) = -GINT(3,iset)
+                  DBUF2E(Dcount+2+Dbase) = GINT(3,iset)
+                  Dcount = Dcount + 3
+               else
+C
+C     raffenetti type 1.
+                  if ( I.eq.J ) GINT(1,iset) = pt5*GINT(1,iset)
+                  IBUF2E(Icount+Ibase) = Ja
+                  DBUF2E(Dcount+Dbase) = GINT(1,iset)
+                  Dcount = Dcount + 1
+               endif
+C
+C     test for possible full buffer in raffenetti mode.
+               Icount = Icount + 1
+               if ( Icount.gt.Limint ) goto 120
+               goto 150
+            endif
+C
+C     test for possible full buffer.
+ 100        if ( Kntt1.le.Kntt2 ) goto 150
+C
+C     current integral buffer is full.
+C     apply buffer label via buflab and then ship it out.
+ 120        call labint(IBUF2E(Ibase),0)
+            if ( Idump.ne.0 ) write (Iout,99002) Iq , Ibase , 
+     &                               IBUF2E(Ibase)
+            Kntt1 = Ireset(1)
+            Kntt2 = Ireset(2)
+            if ( DBUF .and. (.not.ifirst) ) call iwait(intape)
+            call iwrite(intape,Iq,IBUF2E)
+            Ifil = Ifil + 1
+            if ( .not.DBUF ) call iwait(intape)
+            if ( Ifil.ne.(nfile+Icon*Ntx) ) then
+C
+C     logically swap buffers (if permitted).
+               ifirst = .false.
+            else
+               Ntx = Ntx + 1
+               next = Iux(Ntx+1)
+               write (Iout,99004) intape , next , Ifil
+               if ( intape.ne.Iux(1) ) call ifile(intape)
+               call iwind(intape)
+               call iwind(next)
+               ifirst = .true.
+               intape = next
+            endif
+            if ( DBUF ) then
+               Iq = iabs(Iq-2) + 1
+               Ibase = Ibasd(Iq)
+               Dbase = Dbasd(Iq)
+               if ( Idump.ne.0 ) write (Iout,99003) Iq , Icount , 
+     &                                  Ibase , Dcount , Dbase
+            endif
+ 150     continue
+         return
+      endif
+      Itotal = Itotal + Intcnt
+      call twrite(Irwibf,Ibf(1),Lenibf,1,Lenibf,1,0)
+      if ( Intcnt.gt.0 ) write (Iout,99001) Intcnt , Itotal
+C
+C     print the integrals if requested and if they've all
+C     been calculated.
+C
+      if ( jprint.gt.0 .and. Istat.eq.3 )
+     &     call dmpint(jprint,IBUF2E,DBUF2E)
+C
+      return
+C
+      end
+@* INDEX.

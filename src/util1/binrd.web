@@ -1,0 +1,141 @@
+@* binrd.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[OUTPUT:] IX                                                        
+\item[OUTPUT:] ITITLE                                                    
+\item[INPUT:] IDENT                                                     
+\item[OUTPUT:] NWRD                                                      
+\item[OUTPUT:] NB                                                        
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Uses]  IN      IOUT                                           
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       LNK1E                                                  
+\item[Called by]   CHKRD   GETGES  INITBS  INITFC  RDGES   RHFCLO  UHFOPN 
+                                                                    
+\end{description}
+@a
+      subroutine binrd(IX,ITITLE,IDENT,NWRD,NB)
+      implicit none
+      integer i , idel , IDENT , iflag , ik , ilower , In , Inreg , 
+     &        Iout , Ipunch , isilly , ITITLE , Iu1 , Iudum , iupper , 
+     &        j , jdent , kount , mb , mwrd
+      integer NB , numwpc , NWRD
+      double precision IX
+      dimension IX(*) , ITITLE(20)
+      dimension IDENT(4) , jdent(4)
+      common /io    / Inreg , Iout , Ipunch
+      common /munit / Iu1(5) , In , Iudum(14)
+C number of words per "card"
+      data numwpc/18/
+C
+C    *******************************************************************
+C
+C          this is a subroutine for the input of binary decks.  the
+C     calling arguments are described below:
+C
+C     ix is the array into which data is to be transferred.
+C
+C     ititle is returned with the title of the deck read in, and is
+C          also used for scratch.
+C
+C     ident is a four word string with the name of the data being
+C          written.  this is used to identify the data on input.
+C          if the identifying string is found more than once in the
+C          input deck, then the data associated with its last occurence
+C          is returned to the calling routine.
+C
+C     nwrd is returned with the number of words read.
+C
+C     nb is returned with the nbasis for the data read in.
+C
+C    *******************************************************************
+C
+C
+99001 format (20A4)
+99002 format (1x,18A4,i7)
+99003 format (' BINARY INPUT CARDS ARE OUT OF SEQUENCE. IDENT= ',4A4,
+     &        8H, KOUNT=,i5)
+99004 format (1x,4A4,18x,i5,10x,i3)
+C
+C
+C     numwpc is the number of words per card.
+C
+C
+C
+      NWRD = 0
+      NB = 0
+C
+      rewind In
+C
+C     search for identification card.
+C
+ 100  read (In,99004,end=300) (jdent(i),i=1,4)
+C   10 read (in,end=30) (jdent(i),i=1,4)
+      do 200 i = 1 , 4
+         if ( jdent(i).ne.IDENT(i) ) goto 100
+ 200  continue
+C
+      backspace In
+      read (In,99004) (ITITLE(i),i=1,4) , mwrd , mb
+C      read (in) (ititle(i),i=1,4),mwrd,mb
+      NWRD = mwrd
+      NB = mb
+C
+C
+C     read the heading card.
+C
+      read (In,99001) (ITITLE(i),i=1,20)
+C   40 read (in) (ititle(i),i=1,20)
+C
+C     read the rest of the deck.
+C
+      NWRD = NWRD/2
+C  now that full double precision  is used
+      read (In,99005) (IX(i),i=1,NWRD)
+99005 format (4D20.12)
+C      read(in) (ix(i),i = 1, nwrd)
+C
+      isilly = 0
+      if ( isilly.eq.0 ) return
+C
+      kount = 0
+      iflag = 1
+      ilower = 1
+      goto 400
+C
+C     this is the exit point for end of deck.
+C
+ 300  return
+ 400  iupper = ilower + numwpc - 1
+      idel = iupper - NWRD
+      if ( idel.gt.0 ) then
+         iupper = NWRD
+         iflag = 0
+      endif
+      kount = kount + 1
+      if ( iflag.eq.1 ) read (In,99002) (IX(i),i=ilower,iupper) , ik
+      if ( iflag.eq.0 ) read (In,99002) (IX(i),i=ilower,iupper) , 
+     &                                  (j,i=1,idel) , ik
+      if ( ik.eq.kount ) then
+C
+C     if done, return to the ident card loop to see if another one
+C     can be found.
+C
+         if ( iflag.eq.0 .or. iupper.eq.NWRD ) goto 100
+         ilower = ilower + numwpc
+         goto 400
+      endif
+C
+C     error exit
+C
+      write (Iout,99003) (IDENT(i),i=1,4) , kount
+      call lnk1e
+      stop 13
+C
+      end
+@* INDEX.

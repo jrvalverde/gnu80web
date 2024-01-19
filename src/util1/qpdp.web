@@ -1,0 +1,144 @@
+@* qpdp.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[PASSED:] LINE                                                      
+\item[INPUT:] LENGTH                                                    
+\item[OUTPUT:] LCURSR                                                    
+\item[OUTPUT:] DP                                                        
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Uses]  QPFAIL  QPOK                                           
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       CAPTLZ  GETCHR  GFLOAT  IFALPH  INTCHR  IORD           
+\item[Called by]   FFGET   QPMATC  QPREAL                                 
+                                                                    
+\end{description}
+@a
+      integer function qpdp(LINE,LENGTH,LCURSR,DP)
+C2qpdp
+C ----------------------------------------------------------------------
+      implicit none
+      integer chr , esign , getchr , intchr , iord , LCURSR , LENGTH , 
+     &        LINE , Maxdep , Maxkey , mycrsr , nsign , Qpabrv , 
+     &        Qpambg , Qpdpth , Qpend , Qperr , Qpexit , Qpfail , Qpok
+      integer Qprecr , Qpret , Stack , t , val
+      dimension LINE(*)
+      double precision DP , expnt , whole , fract , ten , one , gfloat
+      double precision teni , zero , fact
+      logical gotone , ifalph
+      common /qpretc/ Qpok , Qpret , Qpfail , Qpambg , Qperr , Qpexit , 
+     &                Qpabrv , Qpend , Qprecr , Qpdpth , Maxdep , 
+     &                Stack(6,10) , Maxkey
+      data ten/10.0D0/ , one/1.0D0/ , zero/0.0D0/
+C          this routine accepts a real double precision number.
+C     the value of the function is qpok if a number is accepted,
+C     or qpfail otherwise.  if a number is accepted, then lcursr is
+C     advanced and the value of the number is stored into dp.  no
+C     global data is modified.
+C     r. a. whiteside - march 1979
+C ----------------------------------------------------------------------
+C
+C                        init some stuff.
+      gotone = .false.
+      nsign = 0
+      esign = 0
+      whole = zero
+      fract = zero
+      expnt = zero
+      mycrsr = LCURSR
+      val = Qpfail
+      if ( LCURSR.lt.LENGTH ) then
+C
+C                  peek at first character, see if it's a sign.
+         chr = getchr(LINE,mycrsr)
+         nsign = 0
+         if ( chr.eq.iord('-') ) nsign = -1
+         if ( chr.eq.iord('+') ) nsign = +1
+         if ( nsign.eq.0 ) mycrsr = LCURSR
+C
+C                  try to get the part before the decimal.
+C                  ---------------------------------------
+ 50      chr = getchr(LINE,mycrsr)
+         t = intchr(chr,10)
+         if ( t.eq.-1 ) then
+C
+C                  examine delimiting character.
+            call captlz(chr,chr,1)
+            if ( chr.eq.iord('.') ) then
+C
+C
+C                        get the fraction part.
+C                        ----------------------
+               teni = one/ten
+               fact = teni
+               if ( mycrsr.ge.LENGTH ) goto 100
+C
+ 60            chr = getchr(LINE,mycrsr)
+               t = intchr(chr,10)
+               if ( t.eq.-1 ) then
+C
+C                  examine delimiter.
+                  call captlz(chr,chr,1)
+                  if ( chr.ne.iord('E') .and. chr.ne.iord('D') ) then
+                     if ( .not.(chr.eq.iord('.') .or. ifalph(chr)) )
+     &                    goto 100
+                     goto 200
+                  endif
+               else
+                  gotone = .true.
+                  fract = fract + fact*gfloat(t)
+                  fact = fact*teni
+                  if ( mycrsr.lt.LENGTH ) goto 60
+                  goto 100
+               endif
+            elseif ( chr.ne.iord('E') .and. chr.ne.iord('D') ) then
+               goto 200
+            endif
+C
+C                        get the exponent part.
+            if ( .not.gotone ) goto 200
+            if ( mycrsr.ge.LENGTH ) goto 200
+            esign = 0
+            chr = getchr(LINE,mycrsr)
+            if ( chr.eq.iord('+') ) esign = +1
+            if ( chr.eq.iord('-') ) esign = -1
+            if ( esign.eq.0 ) mycrsr = mycrsr - 1
+C
+            gotone = .false.
+            if ( mycrsr.ge.LENGTH ) goto 200
+ 80         chr = getchr(LINE,mycrsr)
+            t = intchr(chr,10)
+            if ( t.ne.-1 ) then
+               gotone = .true.
+               expnt = ten*expnt + gfloat(t)
+               if ( mycrsr.lt.LENGTH ) goto 80
+C
+            elseif ( ifalph(chr) .or. chr.eq.iord('.') ) then
+               goto 200
+            endif
+         else
+            whole = ten*whole + gfloat(t)
+            gotone = .true.
+            if ( mycrsr.lt.LENGTH ) goto 50
+            goto 200
+         endif
+C
+C                        success.
+ 100     if ( gotone ) then
+            LCURSR = mycrsr - 1
+            val = Qpok
+            if ( nsign.eq.0 ) nsign = 1
+            if ( esign.eq.0 ) esign = 1
+            DP = (gfloat(nsign))*(whole+fract)
+     &           *(ten**(gfloat(esign)*expnt))
+         endif
+      endif
+ 200  qpdp = val
+      return
+C
+      end
+@* INDEX.

@@ -1,0 +1,41 @@
+@* aclear.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[INPUT:] N                                                         
+\item[OUTPUT:] A                                                         
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Uses]   NOTHING                                           
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]        NOTHING                                           
+\item[Called by]   CNTLPD  CNTRLP  D2ESP   D2ESPD  DLPINT  FFRCNN  FOFPHF 
+             FORMF   FRCOUT  FRMW    GINPUT  GLPINT  INICOM  LINK1  
+             LOSBAS  PHOENI  PHYFIL  PUTF    PUTFF   QQRAD   STVINT 
+             TRANFF  UHFTST  ZTOC                                   
+                                                                    
+\end{description}
+@a
+      subroutine aclear(N,A)
+      implicit none
+      double precision A , zero
+      integer i , N
+C
+C     routine to clear n elements in array a.
+C
+      dimension A(*)
+      data zero/0.0D0/
+C
+C     loop over the n elements.
+      do 100 i = 1 , N
+         A(i) = zero
+ 100  continue
+C
+C     return to caller.
+      return
+C
+      end
+@* INDEX.

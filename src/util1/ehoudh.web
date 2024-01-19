@@ -1,0 +1,221 @@
+@* ehoudh.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[OUTPUT:] AR                                                        
+\item[OUTPUT:] AI                                                        
+\item[INPUT:] N                                                         
+\item[OUTPUT:] D                                                         
+\item[OUTPUT:] E                                                         
+\item[OUTPUT:] TAU                                                       
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Uses]   NOTHING                                           
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       GABS    GSQRT                                          
+\item[Called by]   DIAGD                                                  
+                                                                    
+\end{description}
+
+\begin{verbatim}
+   function            - reduction of a complex hermitian matrix to a
+                           real symmetric tridiagonal matrix.
+   parameters   ar     - input/output vector of length n(n+1)/2.
+                           on input ar contains the real components of
+                           the full lower triangle of the hermitian
+                           matrix stored in symmetric mode.
+                           on output ar contains the real components
+                           of the full lower triangle of the product
+                           of the unitary hermitian matrices stored in
+                           symmetric mode.
+                ai     - input/output vector of length n(n+1)/2
+                           containing the imaginary counterparts to
+                           ar, above.
+                n      - input scalar containing the order of the
+                           hermitian matrix.
+                d      - output vector of length n containing the
+                           diagonal elements of the tridiagonal matrix.
+                e      - output vector of length n containing the
+                           sub-diagonal in its last (n-1) elements.
+                tau    - output matrix of dimension 2 by n
+                           containing the remaining information
+                           about the unitary transformations.
+                           the output information contained in tau
+                           along with the output information in ar
+                           and ai are used to back-transform
+                           eigenvectors of the symmetric tridiagonal
+                           matrix to eigenvectors of the original
+                           input matrix (specified by the input values
+                           of ar and ai).
+      implemented by rolf seeger
+      numer. math., 11, 181 (1968)
+\end{verbatim}
+
+
+@a
+      subroutine ehoudh(AR,AI,N,D,E,TAU)
+      implicit none
+      double precision AI , AR , bb , D , delta , E , eps , eta , gabs , 
+     &                 gsqrt , one , q1 , q2 , ratio , rdelp , rho , 
+     &                 root , sqrtvr , t1 , t2
+      double precision TAU , testbb , toler , tt1 , tt2 , vr , x1 , x2 , 
+     &                 zero
+      integer i , im1 , indx , inx1 , inx2 , ix , j , jj , jp1 , kk , 
+     &        l , N , nm1 , nn , nr , nrm1
+      dimension AR(*) , AI(*) , D(*) , E(*) , TAU(2,*)
+      data zero , one/0.D0 , 1.D0/
+C
+C=    dimension itol(2)
+C=    equivalence(itol(1),rdelp)
+C=    data itol/'00001b00'x,0/
+C                                  tol is a machine dependent constant,
+C                                  tol = eta/eps, where eta is the
+C                                  smallest positive number represent-
+C                                  able in the computer and eps is the
+C                                  smallest positive number for which
+C                                  1+eps.ne.1.
+      eps = 2.**(-37)
+C      eta=2.**(-218)
+      eta = 2.0D00**(-126)
+      rdelp = eta/eps
+C=
+      nm1 = N - 1
+      toler = zero
+      nn = N*(N+1)/2
+      do 100 i = 1 , nn
+         t1 = gabs(AR(i))
+         t2 = gabs(AI(i))
+         if ( t2.gt.t1 ) t1 = t2
+         if ( t1.gt.toler ) toler = t1
+ 100  continue
+      testbb = rdelp*toler
+      if ( N.gt.2 ) then
+C                                  perform n - 2 similarity
+C                                    transformations
+         do 200 nr = 2 , nm1
+            nrm1 = nr - 1
+            vr = zero
+            TAU(1,nr) = zero
+            TAU(2,nr) = zero
+            TAU(2,1) = zero
+            do 120 l = nr , N
+               indx = l*(l-1)/2 + nrm1
+               vr = AR(indx)**2 + AI(indx)**2 + vr
+ 120        continue
+            indx = nr*nrm1/2 + nrm1
+            sqrtvr = gsqrt(vr)
+            if ( testbb.lt.sqrtvr ) then
+               root = gsqrt(AR(indx)**2+AI(indx)**2)*sqrtvr
+               if ( root.ne.zero ) then
+C
+                  delta = vr + root
+                  ratio = vr/root
+                  TAU(1,1) = -ratio*AR(indx)
+                  TAU(2,1) = ratio*AI(indx)
+                  AR(indx) = (ratio+one)*AR(indx)
+                  AI(indx) = (ratio+one)*AI(indx)
+               else
+                  AR(indx) = sqrtvr
+                  delta = vr
+                  TAU(1,1) = -AR(indx)
+               endif
+C                                  the matrix to be used in the
+C                                    similarity transformation has
+C                                    been determined. the transfor-
+C                                    mation follows
+               do 140 j = nr , N
+                  jj = j*(j-1)/2
+                  indx = jj + nrm1
+                  TAU(1,j) = AR(indx)/delta
+                  TAU(2,j) = AI(indx)/delta
+                  D(j) = zero
+                  E(j) = zero
+                  do 125 l = nr , j
+                     inx1 = l*(l-1)/2 + nrm1
+                     inx2 = jj + l
+                     D(j) = D(j) + AR(inx2)*AR(inx1) - AI(inx2)*AI(inx1)
+                     E(j) = E(j) + AR(inx2)*AI(inx1) + AI(inx2)*AR(inx1)
+ 125              continue
+                  jp1 = j + 1
+                  if ( jp1.gt.N ) goto 150
+                  do 130 l = jp1 , N
+                     kk = l*(l-1)/2
+                     inx1 = kk + nrm1
+                     inx2 = kk + j
+                     D(j) = D(j) + AR(inx2)*AR(inx1) + AI(inx2)*AI(inx1)
+                     E(j) = E(j) + AR(inx2)*AI(inx1) - AI(inx2)*AR(inx1)
+ 130              continue
+ 140           continue
+ 150           rho = zero
+               do 160 l = nr , N
+                  rho = rho + D(l)*TAU(1,l) + E(l)*TAU(2,l)
+ 160           continue
+               ix = nrm1*(nr-2)/2
+               do 170 i = nr , N
+                  ix = ix + i - 1
+                  inx2 = ix + nrm1
+                  do 165 j = nr , i
+                     inx1 = ix + j
+                     x1 = TAU(1,i)*D(j) + TAU(2,i)*E(j)
+                     x2 = TAU(2,i)*D(j) - TAU(1,i)*E(j)
+                     q1 = D(i) - rho*AR(inx2)
+                     q2 = E(i) - rho*AI(inx2)
+                     t1 = q1*TAU(1,j) + q2*TAU(2,j)
+                     t2 = q2*TAU(1,j) - q1*TAU(2,j)
+                     AR(inx1) = AR(inx1) - x1 - t1
+                     AI(inx1) = AI(inx1) - x2 - t2
+ 165              continue
+ 170           continue
+               TAU(1,nr) = TAU(1,1)
+               TAU(2,nr) = TAU(2,1)
+            endif
+ 200     continue
+      endif
+C                                  the matrix has been reduced to tri-
+C                                    diagonal hermitian form. the sub-
+C                                    diagonal has been temporarily
+C                                    stored in vector tau. store the
+C                                    diagonal of the reduced matrix in d
+      indx = 0
+      do 300 i = 1 , N
+         indx = indx + i
+         D(i) = AR(indx)
+ 300  continue
+C                                  perform the diagonal unitary simila-
+C                                    rity transformation
+      TAU(1,1) = one
+      TAU(2,1) = zero
+      E(1) = zero
+      if ( N.ne.1 ) then
+         indx = (N*nm1)/2 + nm1
+         TAU(1,N) = AR(indx)
+         TAU(2,N) = -AI(indx)
+C                                  calculate subdiagonal e of the real
+C                                    symmetric tridiagonal matrix. cal-
+C                                    culate tau, the diagonal of the
+C                                    diagonal unitary matrix
+         indx = 1
+         do 350 i = 2 , N
+            indx = indx + i
+            im1 = i - 1
+            bb = gsqrt(TAU(1,i)**2+TAU(2,i)**2)
+            E(i) = bb
+            AI(indx) = bb
+            if ( testbb.ge.bb ) then
+               TAU(1,i) = one
+               TAU(2,i) = zero
+               bb = one
+            endif
+            tt1 = TAU(1,i)*TAU(1,im1) - TAU(2,i)*TAU(2,im1)
+            tt2 = TAU(1,i)*TAU(2,im1) + TAU(2,i)*TAU(1,im1)
+            TAU(1,i) = tt1/bb
+            TAU(2,i) = tt2/bb
+ 350     continue
+      endif
+      return
+C
+      end
+@* INDEX.

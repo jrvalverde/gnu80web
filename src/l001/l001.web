@@ -1,0 +1,32 @@
+@* l001.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[OUTPUT:] NCHAIN                                                    
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Uses]   NOTHING                                           
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       LINK1   NEXTOV                                         
+\item[Called by]   CHAIN                                                  
+                                                                    
+\end{description}
+@a
+      subroutine l001(NCHAIN)
+      implicit none
+      integer NCHAIN , nextov
+C
+C     Execute overlay. This intermediate step allows us to
+C     implement overlays either as programs or subroutines and to
+C     isolate implementation specifics from the main program
+C
+C     Initialize evrything and process job commands
+C
+      call link1
+      NCHAIN = nextov(0)
+      return
+      end
+@* INDEX.

@@ -1,0 +1,36 @@
+@* qpskbl.
+\section*{\sf Dummy Arguments}  \begin{description}
+                                                                    
+\item[PASSED:] LINE                                                      
+\item[OUTPUT:] LCURSR                                                    
+\item[INPUT:] LENGTH                                                    
+                                                                    
+\end{description} \section*{\sf Common Variables}  \begin{description}
+                                                                    
+\item[Modifies]     NOTHING                                           
+\item[Uses]   NOTHING                                           
+                                                                    
+\end{description}  \section*{\sf External Subprograms}  \begin{description}
+                                                                    
+\item[Calls]       GETCHR  IORD                                           
+\item[Called by]   FFGET   QPSCAN                                         
+                                                                    
+\end{description}
+@a
+      subroutine qpskbl(LINE,LCURSR,LENGTH)
+C ----------------------------------------------------------------------
+      implicit none
+      integer getchr , iord , LCURSR , LENGTH
+      integer LINE(*)
+C          this routine skips the leading blanks in line.  it is
+C     called by qpscan if the flag qpblnk is zero.
+C     r. a. whiteside - march 1979
+C ----------------------------------------------------------------------
+C2qpskbl
+ 100  if ( LCURSR.ge.LENGTH ) return
+      if ( getchr(LINE,LCURSR).eq.iord(' ') ) goto 100
+      LCURSR = LCURSR - 1
+      return
+C
+      end
+@* INDEX.
